@@ -46,7 +46,7 @@ void FunctionalInliner::run()
 
 void FunctionalInliner::operator()(FunctionalInstruction& _instr)
 {
-	bool movable = eth::SemanticInformation::movable(_instr.instruction.instruction);
+	bool movable = eth::SemanticInformation::movable(_instr.instruction);
 
 	ASTModifier::operator()(_instr);
 
