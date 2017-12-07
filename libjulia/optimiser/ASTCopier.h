@@ -41,20 +41,20 @@ namespace julia
 class ASTCopier: public boost::static_visitor<Statement>
 {
 public:
-	Statement operator()(Literal const& _literal);
-	Statement operator()(Instruction const& _instruction);
-	Statement operator()(Identifier const& _identifier);
-	Statement operator()(FunctionalInstruction const& _instr);
-	Statement operator()(FunctionCall const&);
-	Statement operator()(Label const& _label);
-	Statement operator()(StackAssignment const& _assignment);
-	Statement operator()(Assignment const& _assignment);
-	Statement operator()(VariableDeclaration const& _varDecl);
-	Statement operator()(If const& _if);
-	Statement operator()(Switch const& _switch);
-	Statement operator()(FunctionDefinition const&);
-	Statement operator()(ForLoop const&);
-	Statement operator()(Block const& _block);
+	virtual Statement operator()(Literal const& _literal);
+	virtual Statement operator()(Instruction const& _instruction);
+	virtual Statement operator()(Identifier const& _identifier);
+	virtual Statement operator()(FunctionalInstruction const& _instr);
+	virtual Statement operator()(FunctionCall const&);
+	virtual Statement operator()(Label const& _label);
+	virtual Statement operator()(StackAssignment const& _assignment);
+	virtual Statement operator()(Assignment const& _assignment);
+	virtual Statement operator()(VariableDeclaration const& _varDecl);
+	virtual Statement operator()(If const& _if);
+	virtual Statement operator()(Switch const& _switch);
+	virtual Statement operator()(FunctionDefinition const&);
+	virtual Statement operator()(ForLoop const&);
+	virtual Statement operator()(Block const& _block);
 
 	virtual Statement translate(Statement const& _statement);
 
@@ -88,7 +88,6 @@ std::vector<T> ASTCopier::translateVector(std::vector<T> const& _values)
 		translated.emplace_back(translate(v));
 	return translated;
 }
-
 
 }
 }
