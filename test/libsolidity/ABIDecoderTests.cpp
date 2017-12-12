@@ -785,6 +785,23 @@ BOOST_AUTO_TEST_CASE(complex_struct)
 	)
 }
 
+BOOST_AUTO_TEST_CASE(return_dynamic_types_cross_call_simple)
+{
+	string sourceCode = R"(
+		contract C {
+			function dyn() returns (bytes) {
+				return "1234567890123456789012345678901234567890";
+			}
+			function f() returns (bytes) {
+				return this.dyn();
+			}
+		}
+	)";
+	NEW_ENCODER(
+		compileAndRun(sourceCode, 0, "C");
+		ABI_CHECK(callContractFunction("f()"), encodeArgs(0x20));
+	)
+}
 
 
 BOOST_AUTO_TEST_SUITE_END()

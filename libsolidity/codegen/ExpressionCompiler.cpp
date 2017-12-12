@@ -1586,8 +1586,13 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	else
 		for (auto const& retType: _functionType.returnParameterTypes())
 		{
-			solAssert(!retType->isDynamicallySized(), "Unable to return dynamic type from external call.");
-			retSize += retType->calldataEncodedSize();
+			if (retType->isDynamicallySized())
+			{
+				retSize = 0;
+				break;
+			}
+			else
+				retSize += retType->calldataEncodedSize();
 		}
 
 	// Evaluate arguments.
@@ -1641,18 +1646,6 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		m_context << u256(0) << Instruction::DUP2 << Instruction::MSTORE;
 		m_context << u256(32) << Instruction::ADD;
 		utils().storeFreeMemoryPointer();
-	}
-
-	// Touch the end of the output area so that we do not pay for memory resize during the call
-	// (which we would have to subtract from the gas left)
-	// We could also just use MLOAD; POP right before the gas calculation, but the optimizer
-	// would remove that, so we use MSTORE here.
-	if (!_functionType.gasSet() && retSize > 0)
-	{
-		m_context << u256(0);
-		utils().fetchFreeMemoryPointer();
-		// This touches too much, but that way we save some rounding arithmetics
-		m_context << u256(retSize) << Instruction::ADD << Instruction::MSTORE;
 	}
 
 	// Copy function identifier to memory.
@@ -1780,18 +1773,37 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	}
 	else if (!_functionType.returnParameterTypes().empty())
 	{
-		utils().fetchFreeMemoryPointer();
-		bool memoryNeeded = false;
-		for (auto const& retType: _functionType.returnParameterTypes())
+		if (m_context.experimentalFeatureActive(ExperimentalFeature::ABIEncoderV2))
 		{
-			utils().loadFromMemoryDynamic(*retType, false, true, true);
-			if (dynamic_cast<ReferenceType const*>(retType.get()))
-				memoryNeeded = true;
-		}
-		if (memoryNeeded)
+			// TODO: This is quite wasteful in terms of memory.
+			utils().fetchFreeMemoryPointer();
+			m_context << Instruction::DUP1 << Instruction::RETURNDATASIZE << Instruction::ADD;
+			// stack: mem_start mem_end
+			m_context << Instruction::DUP2 << u256(0) << Instruction::RETURNDATASIZE << Instruction::RETURNDATACOPY;
+			// TODO :round up "size" to multiple of 32
+			m_context << Instruction::DUP1;
 			utils().storeFreeMemoryPointer();
+			auto ret = m_context.pushNewTag();
+			string decoderName = m_context.abiFunctions().tupleDecoder(_functionType.returnParameterTypes(), true);
+			m_context.appendJumpTo(m_context.namedTag(decoderName));
+			m_context.adjustStackOffset(int(utils().sizeOnStack(_functionType.returnParameterTypes())) - 3);
+			m_context << ret.tag();
+		}
 		else
-			m_context << Instruction::POP;
+		{
+			utils().fetchFreeMemoryPointer();
+			bool memoryNeeded = false;
+			for (auto const& retType: _functionType.returnParameterTypes())
+			{
+				utils().loadFromMemoryDynamic(*retType, false, true, true);
+				if (dynamic_cast<ReferenceType const*>(retType.get()))
+					memoryNeeded = true;
+			}
+			if (memoryNeeded)
+				utils().storeFreeMemoryPointer();
+			else
+				m_context << Instruction::POP;
+		}
 	}
 }
 
