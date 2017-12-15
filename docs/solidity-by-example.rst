@@ -126,15 +126,15 @@ of votes.
             // modifies `voters[msg.sender].voted`
             sender.voted = true;
             sender.delegate = to;
-            Voter storage delegate = voters[to];
-            if (delegate.voted) {
+            Voter storage Delegate = voters[to];
+            if (Delegate.voted) {
                 // If the delegate already voted,
                 // directly add to the number of votes
-                proposals[delegate.vote].voteCount += sender.weight;
+                proposals[Delegate.vote].voteCount += sender.weight;
             } else {
                 // If the delegate did not vote yet,
                 // add to her weight.
-                delegate.weight += sender.weight;
+                Delegate.weight += sender.weight;
             }
         }
 
@@ -155,13 +155,13 @@ of votes.
         /// @dev Computes the winning proposal taking all
         /// previous votes into account.
         function winningProposal() public view
-                returns (uint winningProposal)
+                returns (uint WinningProposal)
         {
             uint winningVoteCount = 0;
             for (uint p = 0; p < proposals.length; p++) {
                 if (proposals[p].voteCount > winningVoteCount) {
                     winningVoteCount = proposals[p].voteCount;
-                    winningProposal = p;
+                    WinningProposal = p;
                 }
             }
         }
@@ -170,9 +170,9 @@ of votes.
         // of the winner contained in the proposals array and then
         // returns the name of the winner
         function winnerName() public view
-                returns (bytes32 winnerName)
+                returns (bytes32 WinnerName)
         {
-            winnerName = proposals[winningProposal()].name;
+            WinnerName = proposals[winningProposal()].name;
         }
     }
 
